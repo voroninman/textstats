@@ -61,7 +61,7 @@ func main() {
 		log.Fatal(http.ListenAndServe(":"+commPort, commMux))
 	}()
 	go func() {
-		log.Println("Stats at http://localhost:" + statPort)
+		log.Println("Stats at http://localhost:" + statPort + "/stats")
 		log.Fatal(http.ListenAndServe(":"+statPort, statMux))
 	}()
 	go func() {

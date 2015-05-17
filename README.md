@@ -1,4 +1,4 @@
-# Word statistics service
+# Text statistics service
 
 My attempt to do networking programming with Go.
 
@@ -27,3 +27,5 @@ $ curl http://localhost:8080/stats?N=3
 
 - Accept input data over TCP not over HTTP
 - Read a request body interactively
+- Add a simple functionality test
+- Add the functionality test that check against concurrency race conditions (maps aren't concurrency safe)
