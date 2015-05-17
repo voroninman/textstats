@@ -3,19 +3,19 @@
 My attempt to do networking programming with Go.
 
 ### Build
-```
-go build textstats.go stat.go stat_letters.go stat_words.go
+```bash
+$ go build textstats.go stat.go stat_letters.go stat_words.go
 ```
 
 ### Run
-```
+```bash
 $ textstats --port=5555 --stat=8080
 2015/05/17 21:04:33 Waiting for data at http://localhost:5555
 2015/05/17 21:04:33 Stats at http://localhost:8080
 ```
 
 ### Usage
-```
+```bash
 $ # Sending arbitrary text
 $ curl -X POST -d 'bar foo buzz foo buzz bar bar bar' http://localhost:5555
 $ # Dump the statistics (default N=5)
