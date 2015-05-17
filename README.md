@@ -2,6 +2,11 @@
 
 My attempt to do networking programming with Go.
 
+### Build
+```
+go build textstats.go stat.go stat_letters.go stat_words.go
+```
+
 ### Run
 ```
 $ textstats --port=5555 --stat=8080
