@@ -4,7 +4,7 @@ My attempt to do networking programming with Go.
 
 ### Build
 ```bash
-$ go build textstats.go stat.go stat_letters.go stat_words.go
+$ go build textstats.go stat*.go
 ```
 
 ### Run
