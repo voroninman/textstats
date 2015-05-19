@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -15,7 +14,8 @@ import (
 func parseWords(s string) []string {
 	s = strings.ToLower(s)
 	// `\pL` matches any Unicode character (https://github.com/google/re2/wiki/Syntax)
-	return regexp.MustCompile(`\pL+`).FindAllString(s, -1)
+	// return regexp.MustCompile(`\pL+`).FindAllString(s, -1)
+	return strings.Fields(s)
 }
 
 func main() {
