@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -13,62 +14,73 @@ import (
 
 func parseWords(s string) []string {
 	s = strings.ToLower(s)
-	return regexp.MustCompile(`\w+`).FindAllString(s, -1)
+	// `\pL` matches any Unicode character (https://github.com/google/re2/wiki/Syntax)
+	return regexp.MustCompile(`\pL+`).FindAllString(s, -1)
 }
 
 func main() {
 
-	commPortRef := flag.Int("port", 5555, "The port to listen for the data")
-	statPortRef := flag.Int("stat", 8080, "The port to dump the statictics")
+	var commPortFlag, statPortFlag int
+	var isDebug bool
+	flag.IntVar(&commPortFlag, "port", 5555, "The port to listen for the data")
+	flag.IntVar(&statPortFlag, "stat", 8080, "The port to dump the statictics")
+	flag.BoolVar(&isDebug, "debug", false, "Turn on additional logging")
 	flag.Parse()
-	commPort := strconv.Itoa(*commPortRef)
-	statPort := strconv.Itoa(*statPortRef)
 
-	commMux := http.NewServeMux()
-	statMux := http.NewServeMux()
+	commPort := strconv.Itoa(commPortFlag)
+	statPort := strconv.Itoa(statPortFlag)
 
 	stat := NewStat()
 	queue := make(chan string)
 
-	commMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		// "/" matches all URLs so we need to check explicitly
-		if r.RequestURI != "/" || r.Method != "POST" {
-			http.NotFound(w, r)
-		}
-
-		body, _ := ioutil.ReadAll(r.Body)
-		for _, word := range parseWords(string(body)) {
-			queue <- word
-		}
-	})
-
-	statMux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		n, err := strconv.Atoi(r.URL.Query().Get("N"))
-		if err != nil {
-			n = 5
-		}
-
-		json, _ := json.Marshal(stat.Dump(n))
-		w.Header().Add("Content-Type", "application/json")
-		w.Write(json)
-	})
-
+	// Serving stats
 	go func() {
-		log.Println("Waiting for data at http://localhost:" + commPort)
-		log.Fatal(http.ListenAndServe(":"+commPort, commMux))
-	}()
-	go func() {
+		http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+			defer r.Body.Close()
+			n, err := strconv.Atoi(r.URL.Query().Get("N"))
+			if err != nil {
+				n = 5
+			}
+			json, _ := json.Marshal(stat.Dump(n))
+			w.Header().Add("Content-Type", "application/json")
+			w.Write(json)
+		})
 		log.Println("Stats at http://localhost:" + statPort + "/stats")
-		log.Fatal(http.ListenAndServe(":"+statPort, statMux))
+		log.Fatal(http.ListenAndServe(":"+statPort, nil))
 	}()
+
+	// Receiveing the data
 	go func() {
+		log.Println("Listening TCP localhost:" + commPort)
+		ln, err := net.Listen("tcp", ":"+commPort)
+		if err != nil {
+			panic(err)
+		}
 		for {
-			stat.RecordWord(<-queue)
+			conn, _ := ln.Accept()
+			go func(conn net.Conn) {
+				connbuf := bufio.NewReader(conn)
+				defer conn.Close()
+				for {
+					str, err := connbuf.ReadString('\n')
+					if err != nil {
+						break
+					}
+					words := parseWords(str)
+					for _, word := range words {
+						queue <- word
+					}
+					if isDebug {
+						log.Println("Received " + strconv.Itoa(len(words)) + " words from " +
+							conn.RemoteAddr().String())
+					}
+				}
+			}(conn)
 		}
 	}()
 
-	<-make(chan bool) // wait till goroutines do the work
+	// Synchronization
+	for {
+		stat.RecordWord(<-queue)
+	}
 }

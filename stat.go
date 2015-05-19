@@ -48,7 +48,6 @@ func (stat *Stat) RecordWord(word string) {
 		lc.count++
 	}
 	stat.wordsHeap.update(wc, wc.count+1)
-
 	stat.count++
 }
 
@@ -72,7 +71,9 @@ func (stat Stat) Dump(n int) map[string]interface{} {
 			dump[jsonKeyWords] = append(dump[jsonKeyWords].([]string), word)
 		}
 		if i < len(stat.lettersHeap) {
-			dump[jsonKeyLetters] = append(dump[jsonKeyLetters].([]string), stat.lettersHeap[i].letter)
+			dump[jsonKeyLetters] = append(
+				dump[jsonKeyLetters].([]string),
+				stat.lettersHeap[i].letter)
 		}
 	}
 
